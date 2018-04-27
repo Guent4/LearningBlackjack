@@ -1,8 +1,6 @@
 import collections
 import random
 
-import sys
-
 
 class Blackjack(object):
     NUM_DECKS = 2
@@ -18,16 +16,17 @@ class Blackjack(object):
         "win": 1
     }
 
-    def __init__(self):
-        random.seed("blackjack")
+    def __init__(self, seed="blackjack"):
+        if seed is not None:
+            random.seed(seed)
         self.Card = collections.namedtuple("Card", ["suit", "number"])
         self.unused = []
         self.inuse = []
         self.used = []
         self.create_deck()
 
-        self.dealer_cards = None
-        self.player_cards = None
+        self.dealer_cards = []
+        self.player_cards = []
 
     def create_deck(self):
         self.unused = []
@@ -57,6 +56,7 @@ class Blackjack(object):
 
     @staticmethod
     def get_card_value(cards):
+        assert isinstance(cards, list)
         num_aces = 0
         value = 0
         for card in cards:
@@ -77,6 +77,12 @@ class Blackjack(object):
         assert len(self.unused) + len(self.inuse) + len(self.used) == 13 * 4 * Blackjack.NUM_DECKS, len(self.unused) + len(self.inuse) + len(self.used)
 
         if action == Blackjack.ACTION["start"]:
+            # Discard the cards from the last game
+            for card in self.dealer_cards:
+                self._discard_card(card)
+            for card in self.player_cards:
+                self._discard_card(card)
+
             self.dealer_cards = [self.draw_card(), self.draw_card()]  # 0 is hidden and 1 is revealed
             self.player_cards = [self.draw_card(), self.draw_card()]
             if Blackjack.get_card_value(self.dealer_cards) == 21 and Blackjack.get_card_value(self.player_cards) == 21:
@@ -120,11 +126,7 @@ class Blackjack(object):
 
         dealer_cards = [x for x in self.dealer_cards]
         player_cards = [x for x in self.player_cards]
-        if finished:
-            for card in self.dealer_cards:
-                self._discard_card(card)
-            for card in self.player_cards:
-                self._discard_card(card)
+        assert len(dealer_cards) + len(player_cards) == len(self.inuse)
 
         return finished, result, dealer_cards, player_cards
 

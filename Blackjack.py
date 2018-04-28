@@ -126,7 +126,8 @@ class Blackjack(object):
 
         dealer_cards = [x for x in self.dealer_cards]
         player_cards = [x for x in self.player_cards]
+        revealed_cards = self.used + player_cards + [dealer_cards[0]]
         assert len(dealer_cards) + len(player_cards) == len(self.inuse)
 
-        return finished, result, dealer_cards, player_cards
+        return finished, result, dealer_cards, player_cards, revealed_cards
 

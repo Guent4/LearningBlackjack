@@ -17,18 +17,18 @@ class BlackjackEnv():
         self._blackjack = Blackjack(self._seed)
 
     def deal(self):
-        _, _, dealer_cards, player_cards = self._blackjack.play_game(Blackjack.ACTION["start"])
-        return dealer_cards, player_cards
+        _, _, dealer_cards, player_cards, revealed_cards = self._blackjack.play_game(Blackjack.ACTION["start"])
+        return dealer_cards, player_cards, revealed_cards
 
     def step(self, action):
         assert action in Blackjack.ACTION.values()
 
         action = Blackjack.ACTION["hold"] if action == 0 else Blackjack.ACTION["hit"]
 
-        finished, result, dealer_cards, player_cards = self._blackjack.play_game(action)
+        finished, result, dealer_cards, player_cards, revealed_cards = self._blackjack.play_game(action)
         reward = BlackjackEnv._calculate_reward(finished, result, player_cards)
 
-        return [dealer_cards, player_cards], reward, finished, [result]
+        return [dealer_cards, player_cards, revealed_cards], reward, finished, [result]
 
     @staticmethod
     def _calculate_reward(finished, result, player_cards):
@@ -47,7 +47,7 @@ class BlackjackEnv():
 
 
 def Q_learning_with_epsilon_greedy():
-    def cards_to_state(dealer_cards, player_cards, only_one_dealer_card=True):
+    def cards_to_state(dealer_cards, player_cards, revealed_cards, only_one_dealer_card=True):
         dealer_cards_interested_in = [dealer_cards[0]] if only_one_dealer_card else dealer_cards
         player_value = Blackjack.get_card_value(player_cards)
         dealer_value = Blackjack.get_card_value(dealer_cards_interested_in)
@@ -98,12 +98,6 @@ def Q_learning_with_epsilon_greedy():
                 q_table[s[0], s[1], a] += lr * (r + y * np.max(q_table[new_s[0], new_s[1], :]) - q_table[s[0], s[1], a])
             s = new_s
 
-    # Save the q_table to a csv
-    with open("hold.csv", "wb") as hold:
-        np.savetxt(hold, q_table[:, :, 0])
-    with open("hit.csv", "wb") as hit:
-        np.savetxt(hit, q_table[:, :, 1])
-
     # Evaluate how good this q_table is
     env_eval = BlackjackEnv()
     env_eval.seed("eval")
@@ -144,21 +138,30 @@ def Q_learning_with_epsilon_greedy():
 def learning_with_keras():
     import keras.layers
 
+    def count_cards(cards):
+        counts = [0 for _ in range(13)]
+        for card in cards:
+            counts[card.number - 1] += 1
+        return counts
+
     # Convert given state as a tuple of dealer_cards and player_cards into a one-hot matrix
-    def cards_to_state(dealer_cards, player_cards, only_one_dealer_card=True):
+    def cards_to_state(dealer_cards, player_cards, revealed_cards, only_one_dealer_card=True):
         dealer_cards_interested_in = [dealer_cards[0]] if only_one_dealer_card else dealer_cards
-        player_value = Blackjack.get_card_value(player_cards)
-        dealer_value = Blackjack.get_card_value(dealer_cards_interested_in)
-        s = np.zeros([1, 2])
-        s[0, 0] = player_value
-        s[0, 1] = dealer_value
+        counts = count_cards(revealed_cards)
+
+        s = np.zeros([1, 15])
+        s[0, 0] = Blackjack.get_card_value(player_cards)
+        s[0, 1] = Blackjack.get_card_value(dealer_cards_interested_in)
+        for number in range(13):
+            s[0, 2 + number] = counts[number]
+
         return s
 
 
     # Keras model for the weights
     model = keras.models.Sequential()
-    model.add(keras.layers.InputLayer(batch_input_shape=(1, 2)))
-    model.add(keras.layers.Dense(2 * 2, activation='sigmoid'))
+    model.add(keras.layers.InputLayer(batch_input_shape=(1, 15)))
+    model.add(keras.layers.Dense(15 * 2, activation='sigmoid'))
     model.add(keras.layers.Dense(2, activation='linear'))
     model.compile(loss='mse', optimizer='adam', metrics=['mae'])
 
@@ -171,12 +174,12 @@ def learning_with_keras():
     decay_factor = 0.999
 
     # Number of iterations
-    num_episodes_learning = 100000
+    num_episodes_learning = 1000000
     num_episodes_evaluating = 10000
 
     env.reset()
     for i in range(num_episodes_learning):
-        if i % 100 == 0:
+        if i % 1000 == 0:
             print("Learning episode {} of {}".format(i + 1, num_episodes_learning))
 
         # Update hyperparameters

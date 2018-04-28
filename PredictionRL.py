@@ -149,15 +149,16 @@ def learning_with_keras():
         dealer_cards_interested_in = [dealer_cards[0]] if only_one_dealer_card else dealer_cards
         player_value = Blackjack.get_card_value(player_cards)
         dealer_value = Blackjack.get_card_value(dealer_cards_interested_in)
-        s = np.zeros([1, 21 * 11])
-        s[0, (player_value - 1) * 11 + (dealer_value - 1)] = 1
+        s = np.zeros([1, 2])
+        s[0, 0] = player_value
+        s[0, 1] = dealer_value
         return s
 
 
     # Keras model for the weights
     model = keras.models.Sequential()
-    model.add(keras.layers.InputLayer(batch_input_shape=(1, 21 * 11)))
-    model.add(keras.layers.Dense(21 * 11 * 2, activation='sigmoid'))
+    model.add(keras.layers.InputLayer(batch_input_shape=(1, 2)))
+    model.add(keras.layers.Dense(2 * 2, activation='sigmoid'))
     model.add(keras.layers.Dense(2, activation='linear'))
     model.compile(loss='mse', optimizer='adam', metrics=['mae'])
 

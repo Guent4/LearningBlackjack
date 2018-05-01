@@ -53,7 +53,7 @@ def gameprocc(game_data):
             hit = 1
         else:
             hit = 0
-        features = [outcome, player_value,dealer_value,hit]  #[win(1)/lose(-1)/pus(0), player value, dealer value of shown card, hit/hold ]
+        features = [outcome, player_value,dealer_value,hit]  #[win(1)/lose(-1)/push(0), player value, dealer value of shown card, hit/hold ]
     elif player_value == 21:
         features = [outcome, player_value,dealer_value,0]
     return(features)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     model = mnb.fit(Data, outcome)
     
     # Playing With NB.Multinomial Classifier
-    num_games_test = 1000 
+    num_games_test = 1000
     wins = 0
     pushes = 0
     loses = 0
@@ -96,17 +96,9 @@ if __name__ == '__main__':
         while not finished:
             outc_W_hit =  [Blackjack.get_card_value(player_cards),Blackjack.get_card_value([dealer_cards[0]]),1]
             outc_Wout_hit =  [Blackjack.get_card_value(player_cards),Blackjack.get_card_value([dealer_cards[0]]),0]
-            preds_W_hit = mnb.predict([outc_W_hit])
-            preds_Wout_hit = mnb.predict([outc_Wout_hit])
-            if preds_W_hit[0] == 1:
-                finished, result, dealer_cards, player_cards = blackjack.play_game(Blackjack.ACTION["hit"])
-            elif preds_Wout_hit[0] == 1:
-                finished, result, dealer_cards, player_cards = blackjack.play_game(Blackjack.ACTION["hold"])
-            elif Blackjack.get_card_value(player_cards) >= 17:
-                finished, result, dealer_cards, player_cards = blackjack.play_game(Blackjack.ACTION["hold"])
-            elif Blackjack.get_card_value(player_cards) <= 11:
-                finished, result, dealer_cards, player_cards = blackjack.play_game(Blackjack.ACTION["hit"])       
-            elif Blackjack.get_card_value(player_cards) < 17 and Blackjack.get_card_value([dealer_cards[0]]) > 6:
+            preds_W_hit = mnb.predict_proba([outc_W_hit])   #order of this output is [-1  0  1] thanks to mnb.classes_ attribute output
+            preds_Wout_hit = mnb.predict_proba([outc_Wout_hit])
+            if preds_W_hit[0][2] > preds_Wout_hit[0][2]:
                 finished, result, dealer_cards, player_cards = blackjack.play_game(Blackjack.ACTION["hit"])
             else:
                 finished, result, dealer_cards, player_cards = blackjack.play_game(Blackjack.ACTION["hold"])

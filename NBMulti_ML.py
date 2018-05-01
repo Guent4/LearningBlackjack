@@ -14,7 +14,7 @@ def datacoll(num_games):
     loses = 0
     blackjack = Blackjack()
         
-    Data_coll = []   #initialize the data set for my bayes method 
+    Data_coll = []   #initialize the data set for my bayes method  
     for _ in range(num_games):
         finished, result, dealer_cards, player_cards = blackjack.play_game(Blackjack.ACTION["start"]) #I can name these output variables differently and create my output data differently
         hit_count = 0
